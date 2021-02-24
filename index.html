@@ -23,7 +23,7 @@
              const mainO = llc.FS.readFile('main.o')
 
              const lld = await Lld()
-             lld.FS.writeFile('/main.o', mainO)
+             lld.FS.writeFile('main.o', mainO)
 
              { // untar sysroot to lld's FS
                  let offset = 0;
@@ -127,10 +127,10 @@
 
          window.onload = async () => {
              WASI = (await import('https://unpkg.com/@wasmer/wasi@0.12.0/lib/index.esm.js')).WASI
-             browserBindings = (await import('/browserBindings.js')).default
+             browserBindings = (await import('./browserBindings.js')).default
              WasmFs = (await import('https://unpkg.com/@wasmer/wasmfs@0.12.0/lib/index.esm.js')).WasmFs
-             Llc = (await import('/llc.js')).default
-             Lld = (await import('/lld.js')).default
+             Llc = (await import('./llc.js')).default
+             Lld = (await import('./lld.js')).default
              sysroot = await fetch('sysroot.tar')
                  .then(res => res.arrayBuffer())
                  .then(buf => new Uint8Array(buf));
