@@ -1,7 +1,13 @@
-let WASI, browserBindings, WasmFs, Llc, Lld, sysroot
+import { WASI } from 'https://unpkg.com/@wasmer/wasi@0.12.0/lib/index.esm.js'
+import browserBindings from './browserBindings.js'
+import { WasmFs } from 'https://unpkg.com/@wasmer/wasmfs@0.12.0/lib/index.esm.js'
+import Llc from './llc.js'
+import Lld from './lld.js'
 
-const compileAndRun = async () => {
-    const mainLl = document.getElementById('input').value
+export const compileAndRun = async (mainLl) => {
+    const sysroot = await fetch('sysroot.tar')
+        .then(res => res.arrayBuffer())
+        .then(buf => new Uint8Array(buf));
 
     const wasmFs = new WasmFs()
     const wasi = new WASI({
@@ -117,16 +123,5 @@ const compileAndRun = async () => {
 
     wasi.start(instance)
     const stdout = await wasmFs.getStdOut()
-    document.getElementById('output').value = stdout
-}
-
-window.onload = async () => {
-    WASI = (await import('https://unpkg.com/@wasmer/wasi@0.12.0/lib/index.esm.js')).WASI
-    browserBindings = (await import('./browserBindings.js')).default
-    WasmFs = (await import('https://unpkg.com/@wasmer/wasmfs@0.12.0/lib/index.esm.js')).WasmFs
-    Llc = (await import('./llc.js')).default
-    Lld = (await import('./lld.js')).default
-    sysroot = await fetch('sysroot.tar')
-        .then(res => res.arrayBuffer())
-        .then(buf => new Uint8Array(buf));
+    return stdout
 }

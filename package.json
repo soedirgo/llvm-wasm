@@ -1,0 +1,15 @@
+{
+  "name": "llvm-wasm",
+  "version": "0.0.0",
+  "description": "Compile and run LLVM IR in the browser",
+  "keywords": [
+    "llvm",
+    "wasm"
+  ],
+  "homepage": "https://github.com/soedirgo/llvm-wasm",
+  "bugs": "https://github.com/soedirgo/llvm-wasm/issues",
+  "license": "MIT",
+  "author": "soedirgo",
+  "main": "index.js",
+  "repository": "soedirgo/llvm-wasm"
+}
