@@ -52,28 +52,24 @@ For this, you'll want a fairly beefy machine, because we have no choice but to b
 ## Packages
 ```sh
 sudo apt-get update
-sudo apt-get -y dist-upgrade
 sudo apt-get -y install cmake g++ git ninja-build python3
 ```
 ## Emscripten
 ```sh
 git clone https://github.com/emscripten-core/emsdk
 cd emsdk
-./emsdk install latest
-./emsdk activate latest
+./emsdk install 3.1.20
+./emsdk activate 3.1.20
 source ./emsdk_env.sh
-echo "source $PWD/emsdk_env.sh" >> $HOME/.bash_profile
+echo "source $PWD/emsdk_env.sh" >> $HOME/.bashrc
 cd ..
 ```
-## `clang-tblgen` & `llvm-tblgen`
-Before you cross-compile LLVM, you need to build `clang-tblgen` & `llvm-tblgen` for the host.
+## LLVM
+You need to install LLVM on the host machine for `llvm-tblgen`. 
 ```sh
-git clone https://github.com/llvm/llvm-project
-cd llvm-project
-cmake -G Ninja -S llvm -B build-host \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DLLVM_ENABLE_PROJECTS=clang
-cmake --build build-host --target clang-tblgen llvm-tblgen
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 15
 ```
 ## Cross build
 If you want to toy around with the build options, you might want to base it on the debug build (and save yourself some aneurysms and cloud credits). Otherwise use the release build.
@@ -119,12 +115,7 @@ Now you can stop the build machine instance. You should have `llc.js`, `llc.wasm
 # WASI sysroot
 As mentioned in the preface, we need the WASI sysroot to provide the linker with libc. You also need the clang compiler runtime. Get these [here](https://github.com/WebAssembly/wasi-sdk/releases). These are `wasi-sysroot-x.y.tar.gz` and `libclang_rt.builtins-wasm32-wasi-x.y.tar.gz` respectively. Then bundle & `tar` them up.
 # WASI browser polyfill
-We use [@wasmer/wasi](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasi) as the WASI polyfill. The npm packages we need are:
-- `@wasmer/wasi`
-- `@wasmer/wasmfs`
-- `@wasmer/wasi/lib/bindings/browser`
-
-As of this writing, there was a problem when importing the browser bindings from a CDN (e.g. Skypack), so I had to manually build them with a modified Rollup config. If you don't want to mess with this, just use `browserBindings.js` from the repo.
+We use [@wasmer/wasi](https://www.npmjs.com/package/@wasmer/wasi) as the WASI polyfill.
 # Etc.
 For more details on how to use the WASI sysroot and polyfill, feel free to pore through `index.js`. These references might be helpful:
 - [Emscripten's File System API](https://emscripten.org/docs/api_reference/Filesystem-API.html#filesystem-api)

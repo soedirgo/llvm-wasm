@@ -1,21 +1,15 @@
-import { WASI } from 'https://unpkg.com/@wasmer/wasi@0.12.0/lib/index.esm.js'
-import browserBindings from './browserBindings.js'
-import { WasmFs } from 'https://unpkg.com/@wasmer/wasmfs@0.12.0/lib/index.esm.js'
+import { init, WASI } from 'https://esm.sh/@wasmer/wasi@1.1.2'
 import Llc from './llc.js'
 import Lld from './lld.js'
+
+await init()
 
 export const compileAndRun = async (mainLl) => {
     const sysroot = await fetch('sysroot.tar')
         .then(res => res.arrayBuffer())
         .then(buf => new Uint8Array(buf));
 
-    const wasmFs = new WasmFs()
-    const wasi = new WASI({
-        bindings: {
-            ...browserBindings,
-            fs: wasmFs.fs,
-        }
-    })
+    const wasi = new WASI({})
 
     const llc = await Llc()
     llc.FS.writeFile('main.ll', mainLl)
@@ -122,6 +116,6 @@ export const compileAndRun = async (mainLl) => {
     })
 
     wasi.start(instance)
-    const stdout = await wasmFs.getStdOut()
+    const stdout = await wasi.getStdoutString()
     return stdout
 }
