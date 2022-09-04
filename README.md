@@ -51,12 +51,11 @@ Now for the build steps...
 For this, you'll want a fairly beefy machine, because we have no choice but to build the LLVM toolchain. I used AWS EC2 c5a.8xlarge with 30GB storage (this is fairly expensive, so **STOP** the instance once you're done).
 ## Packages
 ```sh
-sudo apt-get update
-sudo apt-get -y install cmake g++ git ninja-build python3
+sudo apt-get -y install cmake g++ git lbzip2 ninja-build python3
 ```
 ## Emscripten
 ```sh
-git clone https://github.com/emscripten-core/emsdk
+git clone https://github.com/emscripten-core/emsdk --branch 3.1.20 --depth 1
 cd emsdk
 ./emsdk install 3.1.20
 ./emsdk activate 3.1.20
@@ -72,34 +71,20 @@ chmod +x llvm.sh
 sudo ./llvm.sh 15
 ```
 ## Cross build
-If you want to toy around with the build options, you might want to base it on the debug build (and save yourself some aneurysms and cloud credits). Otherwise use the release build.
-
-Debug build:
 ```sh
-EMCC_DEBUG=2 emcmake cmake -G Ninja -S llvm -B build \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CROSSCOMPILING=True \
-  -DCMAKE_INSTALL_PREFIX=install \
-  -DCMAKE_CXX_FLAGS='-g2 -s ASSERTIONS=2 -s SAFE_HEAP -s STACK_OVERFLOW_CHECK=2 -s DEMANGLE_SUPPORT -s MALLOC=emmalloc-debug -s EXCEPTION_DEBUG -s PTHREADS_DEBUG -s ABORT_ON_WASM_EXCEPTIONS -s NO_INVOKE_RUN -s EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH -s INITIAL_MEMORY=64MB -s MODULARIZE -s EXPORT_ES6 -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain","FS"]' \
-  -DLLVM_ENABLE_THREADS=OFF \
-  -DLLVM_DEFAULT_TARGET_TRIPLE=wasm32-wasi \
-  -DLLVM_TARGET_ARCH=wasm32-emscripten \
-  -DLLVM_ENABLE_PROJECTS=lld \
-  -DLLVM_TABLEGEN=$PWD/build-host/bin/llvm-tblgen
-cmake --build build
-```
-Release build:
-```sh
+git clone https://github.com/llvm/llvm-project --branch release/15.x --depth 1
+cd llvm-project
+EMCC_DEBUG=2 \
+CXXFLAGS="-Dwait4=__syscall_wait4" \
+LDFLAGS="-s NO_INVOKE_RUN -s EXIT_RUNTIME -s INITIAL_MEMORY=64MB -s ALLOW_MEMORY_GROWTH -s EXPORTED_RUNTIME_METHODS=FS,callMain -s MODULARIZE -s EXPORT_ES6 -s WASM_BIGINT" \
 emcmake cmake -G Ninja -S llvm -B build \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CROSSCOMPILING=True \
   -DCMAKE_INSTALL_PREFIX=install \
-  -DCMAKE_CXX_FLAGS='-O3 -s NO_ASSERTIONS -s NO_INVOKE_RUN -s EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH -s INITIAL_MEMORY=64MB -s MODULARIZE -s EXPORT_ES6 -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain","FS"]' \
-  -DLLVM_ENABLE_THREADS=OFF \
-  -DLLVM_DEFAULT_TARGET_TRIPLE=wasm32-wasi \
   -DLLVM_TARGET_ARCH=wasm32-emscripten \
+  -DLLVM_DEFAULT_TARGET_TRIPLE=wasm32-wasi \
   -DLLVM_ENABLE_PROJECTS=lld \
-  -DLLVM_TABLEGEN=$PWD/build-host/bin/llvm-tblgen
+  -DLLVM_ENABLE_THREADS=OFF \
+  -DLLVM_TABLEGEN=$(which llvm-tblgen-15)
 cmake --build build
 ```
 ## Download build artifacts
@@ -107,9 +92,10 @@ cmake --build build
 cd build
 tar -czvf bin.tgz bin/{llc,lld}.*
 ```
-Locally:
+And then locally:
 ```sh
 scp <build-machine-address>:~/llvm-project/build/bin.tgz .
+tar -zxf bin.tgz
 ```
 Now you can stop the build machine instance. You should have `llc.js`, `llc.wasm`, `lld.js`, `lld.wasm` on your local machine.
 # WASI sysroot
