@@ -40,9 +40,9 @@ This is the latest attempt I can find, and makes use of [WASI](https://github.co
 
 The approach done here is a mix between `llvm.js` and `wasm-clang`: we compile `llc` & `lld` using Emscripten. `llc` is used to compile the LLVM IR to a wasm32-wasi object file. The object file is run through `lld` along with (WASI) libc into a wasm32-wasi binary.
 
-For `lld` to find libc, we need to create an in-memory file system, like in `wasm-clang`. Fortunately, Emscripten provides this, so all we need to do is to `tar` up the WASI sysroot (which includes libc), and write it into the file system on client-side.
+For `lld` to find libc, we need to create an in-memory file system, like in `wasm-clang`. Fortunately, Emscripten provides this, so all we need to do is to preload the WASI sysroot (which includes libc) into Emscripten's virtual filesystem.
 
-After running the linker, we now have a wasm binary, but this isn't enough to run it on the browser. WASI hasn't been standardized yet, so there isn't native browser support for it, so we need some sort of polyfill. Fortunately, Wasmer provides just that with [@wasmer/wasi](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasi), which they used for e.g. [wasm-terminal](https://www.infoq.com/news/2019/10/wasmer-js-wasi-wasm-browser/).
+After running the linker, we now have a wasm binary, but this isn't enough to run it on the browser. WASI hasn't been standardized yet, so there isn't native browser support for it, so we need some sort of polyfill. Fortunately, Wasmer provides just that with [@wasmer/wasi](https://github.com/wasmerio/wasmer-js), which they used for [wasm-terminal](https://www.infoq.com/news/2019/10/wasmer-js-wasi-wasm-browser/).
 
 And with that, we can run the wasm binary and you're off to the races! :)
 
@@ -70,10 +70,19 @@ wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
 sudo ./llvm.sh 15
 ```
+## WASI sysroot
+As mentioned in the preface, we need the WASI sysroot to provide the linker with libc. You also need the clang compiler runtime. Get these [here](https://github.com/WebAssembly/wasi-sdk/releases). These are `wasi-sysroot-x.y.tar.gz` and `libclang_rt.builtins-wasm32-wasi-x.y.tar.gz` respectively.
+```sh
+wget -qO- https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-15/wasi-sysroot-15.0.tar.gz | tar -xz
+wget -qO- https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-15/libclang_rt.builtins-wasm32-wasi-15.0.tar.gz | tar -xz
+mkdir -p wasi-sysroot/lib/clang
+mv lib wasi-sysroot/lib/clang/
+```
 ## Cross build
 ```sh
 git clone https://github.com/llvm/llvm-project --branch release/15.x --depth 1
 cd llvm-project
+echo "set_target_properties(lld PROPERTIES LINK_FLAGS --preload-file=../../wasi-sysroot@/)" >> llvm/CMakeLists.txt
 EMCC_DEBUG=2 \
 CXXFLAGS="-Dwait4=__syscall_wait4" \
 LDFLAGS="-s NO_INVOKE_RUN -s EXIT_RUNTIME -s INITIAL_MEMORY=64MB -s ALLOW_MEMORY_GROWTH -s EXPORTED_RUNTIME_METHODS=FS,callMain -s MODULARIZE -s EXPORT_ES6 -s WASM_BIGINT" \
@@ -97,15 +106,12 @@ And then locally:
 scp <build-machine-address>:~/llvm-project/build/bin.tgz .
 tar -zxf bin.tgz
 ```
-Now you can stop the build machine instance. You should have `llc.js`, `llc.wasm`, `lld.js`, `lld.wasm` on your local machine.
-# WASI sysroot
-As mentioned in the preface, we need the WASI sysroot to provide the linker with libc. You also need the clang compiler runtime. Get these [here](https://github.com/WebAssembly/wasi-sdk/releases). These are `wasi-sysroot-x.y.tar.gz` and `libclang_rt.builtins-wasm32-wasi-x.y.tar.gz` respectively. Then bundle & `tar` them up.
+Now you can stop the build machine instance. You should have `llc.js`, `llc.wasm`, `lld.data`, `lld.js`, `lld.wasm` on your local machine.
 # WASI browser polyfill
 We use [@wasmer/wasi](https://www.npmjs.com/package/@wasmer/wasi) as the WASI polyfill.
 # Etc.
 For more details on how to use the WASI sysroot and polyfill, feel free to pore through `index.js`. These references might be helpful:
 - [Emscripten's File System API](https://emscripten.org/docs/api_reference/Filesystem-API.html#filesystem-api)
-- [sysroot untar()-ing code](https://github.com/binji/wasm-clang/blob/8e78cdb9caa80f75ed86d6632cb4e9310b22748c/shared.js#L580-L652) from `wasm-clang`
 - [@wasmer/wasi docs](https://docs.wasmer.io/integrations/js/reference-api/wasmer-wasi)
 
 Good luck!
