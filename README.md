@@ -47,42 +47,43 @@ After running the linker, we now have a wasm binary, but this isn't enough to ru
 And with that, we can run the wasm binary and you're off to the races! :)
 
 Now for the build steps...
-# `llc` & `lld`
-For this, you'll want a fairly beefy machine, because we have no choice but to build the LLVM toolchain. I used AWS EC2 c5a.8xlarge with 30GB storage (this is fairly expensive, so **STOP** the instance once you're done).
+# Building `llc` & `lld`
+This was done on a AWS EC2 c6i.metal. Here we compile LLVM 14.0.6 - make sure the version number is consistent on every step.
 ## Packages
 ```sh
+sudo apt-get -y update
 sudo apt-get -y install cmake g++ git lbzip2 ninja-build python3
 ```
 ## Emscripten
 ```sh
-git clone https://github.com/emscripten-core/emsdk --branch 3.1.20 --depth 1
+git clone --branch 3.1.21 --depth 1 https://github.com/emscripten-core/emsdk
 cd emsdk
-./emsdk install 3.1.20
-./emsdk activate 3.1.20
+./emsdk install 3.1.21
+./emsdk activate 3.1.21
 source ./emsdk_env.sh
 echo "source $PWD/emsdk_env.sh" >> $HOME/.bashrc
 cd ..
-```
-## LLVM
-You need to install LLVM on the host machine for `llvm-tblgen`. 
-```sh
-wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh
-sudo ./llvm.sh 15
 ```
 ## WASI sysroot
 As mentioned in the preface, we need the WASI sysroot to provide the linker with libc. You also need the clang compiler runtime. Get these [here](https://github.com/WebAssembly/wasi-sdk/releases). These are `wasi-sysroot-x.y.tar.gz` and `libclang_rt.builtins-wasm32-wasi-x.y.tar.gz` respectively.
 ```sh
 wget -qO- https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-15/wasi-sysroot-15.0.tar.gz | tar -xz
 wget -qO- https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-15/libclang_rt.builtins-wasm32-wasi-15.0.tar.gz | tar -xz
-mkdir -p wasi-sysroot/lib/clang
-mv lib wasi-sysroot/lib/clang/
+mkdir -p wasi-sysroot/lib/clang/14.0.6
+mv lib wasi-sysroot/lib/clang/14.0.6/
 ```
-## Cross build
+## Cross-compile `llc` & `lld`
 ```sh
-git clone https://github.com/llvm/llvm-project --branch release/15.x --depth 1
+git clone --branch llvmorg-14.0.6 --depth 1 https://github.com/llvm/llvm-project
 cd llvm-project
-echo "set_target_properties(lld PROPERTIES LINK_FLAGS --preload-file=../../wasi-sysroot@/)" >> llvm/CMakeLists.txt
+
+# For the actual build, we need to have llvm-tblgen built for the host
+cmake -G Ninja -S llvm -B build-host -DCMAKE_BUILD_TYPE=Release
+cmake --build build-host --target llvm-tblgen
+
+# No easy way to set flags just for lld, so we modify the cmake file directly
+echo "set_target_properties(lld PROPERTIES LINK_FLAGS --preload-file=../../wasi-sysroot/lib@/lib)" >> llvm/CMakeLists.txt
+
 EMCC_DEBUG=2 \
 CXXFLAGS="-Dwait4=__syscall_wait4" \
 LDFLAGS="-s NO_INVOKE_RUN -s EXIT_RUNTIME -s INITIAL_MEMORY=64MB -s ALLOW_MEMORY_GROWTH -s EXPORTED_RUNTIME_METHODS=FS,callMain -s MODULARIZE -s EXPORT_ES6 -s WASM_BIGINT" \
@@ -93,7 +94,7 @@ emcmake cmake -G Ninja -S llvm -B build \
   -DLLVM_DEFAULT_TARGET_TRIPLE=wasm32-wasi \
   -DLLVM_ENABLE_PROJECTS=lld \
   -DLLVM_ENABLE_THREADS=OFF \
-  -DLLVM_TABLEGEN=$(which llvm-tblgen-15)
+  -DLLVM_TABLEGEN=$PWD/build-host/bin/llvm-tblgen
 cmake --build build
 ```
 ## Download build artifacts
@@ -110,7 +111,7 @@ Now you can stop the build machine instance. You should have `llc.js`, `llc.wasm
 # WASI browser polyfill
 We use [@wasmer/wasi](https://www.npmjs.com/package/@wasmer/wasi) as the WASI polyfill.
 # Etc.
-For more details on how to use the WASI sysroot and polyfill, feel free to pore through `index.js`. These references might be helpful:
+For more details on how to use the polyfill and resulting artifacts, feel free to pore through `index.js`. These references might be helpful:
 - [Emscripten's File System API](https://emscripten.org/docs/api_reference/Filesystem-API.html#filesystem-api)
 - [@wasmer/wasi docs](https://docs.wasmer.io/integrations/js/reference-api/wasmer-wasi)
 

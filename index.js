@@ -5,8 +5,6 @@ import Lld from './lld.js'
 await init()
 
 export const compileAndRun = async (mainLl) => {
-    const wasi = new WASI({})
-
     const llc = await Llc()
     llc.FS.writeFile('main.ll', mainLl)
     await llc.callMain(['-filetype=obj', 'main.ll'])
@@ -14,7 +12,6 @@ export const compileAndRun = async (mainLl) => {
 
     const lld = await Lld()
     lld.FS.writeFile('main.o', mainO)
-
     await lld.callMain([
         '-flavor',
         'wasm',
@@ -22,7 +19,7 @@ export const compileAndRun = async (mainLl) => {
         '-lc',
         '-lc++',
         '-lc++abi',
-        '/lib/clang/lib/wasi/libclang_rt.builtins-wasm32.a',
+        '/lib/clang/14.0.6/lib/wasi/libclang_rt.builtins-wasm32.a',
         '/lib/wasm32-wasi/crt1.o',
         'main.o',
         '-o',
@@ -30,12 +27,13 @@ export const compileAndRun = async (mainLl) => {
     ])
     const mainWasm = lld.FS.readFile('main.wasm')
 
+    const wasi = new WASI({})
     const module = await WebAssembly.compile(mainWasm)
     const instance = await WebAssembly.instantiate(module, {
         ...wasi.getImports(module)
     })
-
     wasi.start(instance)
     const stdout = await wasi.getStdoutString()
+
     return stdout
 }
