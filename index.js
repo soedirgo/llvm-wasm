@@ -1,14 +1,14 @@
 import { init, WASI } from 'https://esm.sh/@wasmer/wasi@1.1.2'
-import Llc from './llc.js'
+import Clang from './clang.js'
 import Lld from './lld.js'
 
 await init()
 
-export const compileAndRun = async (mainLl) => {
-    const llc = await Llc()
-    llc.FS.writeFile('main.ll', mainLl)
-    await llc.callMain(['-filetype=obj', 'main.ll'])
-    const mainO = llc.FS.readFile('main.o')
+export const compileAndRun = async (mainC) => {
+    const clang = await Clang()
+    clang.FS.writeFile('main.c', mainC)
+    await clang.callMain(['-c', 'main.c'])
+    const mainO = clang.FS.readFile('main.o')
 
     const lld = await Lld()
     lld.FS.writeFile('main.o', mainO)
@@ -32,8 +32,8 @@ export const compileAndRun = async (mainLl) => {
     const instance = await WebAssembly.instantiate(module, {
         ...wasi.getImports(module)
     })
+
     wasi.start(instance)
     const stdout = await wasi.getStdoutString()
-
     return stdout
 }

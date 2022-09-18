@@ -15,14 +15,10 @@
         </script>
     </head>
     <body>
-        <textarea id="input" cols="80" rows="24" spellcheck="false">@.str = private constant [13 x i8] c"Hello wasm!\0A\00"
+        <textarea id="input" cols="80" rows="24" spellcheck="false">#include <stdio.h>
 
-declare i32 @printf(i8*, ...)
-
-define i32 @main() {
-entry:
-  %call = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @.str, i32 0, i32 0))
-  ret i32 0
+int main(void) {
+    printf("Hello wasm!\n");
 }
 </textarea>
         <br/>
