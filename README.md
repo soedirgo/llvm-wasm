@@ -56,10 +56,10 @@ sudo apt-get -y install cmake g++ git lbzip2 ninja-build python3
 ```
 ## Emscripten
 ```sh
-git clone --branch 3.1.21 --depth 1 https://github.com/emscripten-core/emsdk
+git clone --branch 3.1.40 --depth 1 https://github.com/emscripten-core/emsdk
 cd emsdk
-./emsdk install 3.1.21
-./emsdk activate 3.1.21
+./emsdk install 3.1.40
+./emsdk activate 3.1.40
 source ./emsdk_env.sh
 echo "source $PWD/emsdk_env.sh" >> $HOME/.bashrc
 cd ..
@@ -67,14 +67,14 @@ cd ..
 ## WASI sysroot
 As mentioned in the preface, we need the WASI sysroot to provide the linker with libc. You also need the clang compiler runtime. Get these [here](https://github.com/WebAssembly/wasi-sdk/releases). These are `wasi-sysroot-x.y.tar.gz` and `libclang_rt.builtins-wasm32-wasi-x.y.tar.gz` respectively.
 ```sh
-wget -qO- https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-15/wasi-sysroot-15.0.tar.gz | tar -xz
-wget -qO- https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-15/libclang_rt.builtins-wasm32-wasi-15.0.tar.gz | tar -xz
-mkdir -p wasi-sysroot/lib/clang/14.0.6
-mv lib wasi-sysroot/lib/clang/14.0.6/
+wget -qO- https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sysroot-20.0.tar.gz | tar -xz
+wget -qO- https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/libclang_rt.builtins-wasm32-wasi-20.0.tar.gz | tar -xz
+mkdir -p wasi-sysroot/lib/clang/16.0.4
+mv lib wasi-sysroot/lib/clang/16.0.4/
 ```
 ## Cross-compile `llc` & `lld`
 ```sh
-git clone --branch llvmorg-14.0.6 --depth 1 https://github.com/llvm/llvm-project
+git clone --branch llvmorg-16.0.4 --depth 1 https://github.com/llvm/llvm-project
 cd llvm-project
 
 # For the actual build, we need to have llvm-tblgen built for the host
