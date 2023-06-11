@@ -17,6 +17,8 @@
     <body>
         <textarea id="input" cols="80" rows="24" spellcheck="false">@.str = private constant [13 x i8] c"Hello wasm!\0A\00"
 
+@__main_void = hidden alias i32 (), ptr @main
+
 declare i32 @printf(i8*, ...)
 
 define i32 @main() {
