@@ -106,6 +106,8 @@ And then locally:
 ```sh
 scp <build-machine-address>:~/llvm-project/build/bin.tgz .
 tar -zxf bin.tgz
+mv bin/* .
+rmdir bin
 ```
 Now you can stop the build machine instance. You should have `llc.js`, `llc.wasm`, `lld.data`, `lld.js`, `lld.wasm` on your local machine.
 # WASI browser polyfill
